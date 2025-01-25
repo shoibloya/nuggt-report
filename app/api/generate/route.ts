@@ -91,71 +91,7 @@ export async function POST(request: NextRequest) {
         "search": "Google search 1",
         "importance": "Rationale behind this search"
       }},
-      {{
-        "search": "Google search 2",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 3",
-        "importance": "Rationale behind this search"
-      }},
     ],
-    "Economic Conditions": [
-      {{
-        "search": "Google search 1",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 2",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 3",
-        "importance": "Rationale behind this search"
-      }},
-    ],
-    "Technological Advances": [
-      {{
-        "search": "Google search 1",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 2",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 3",
-        "importance": "Rationale behind this search"
-      }},
-    ],
-    "Competitive Landscape": [
-      {{
-        "search": "Google search 1",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 2",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 3",
-        "importance": "Rationale behind this search"
-      }},
-    ],
-    "Regulatory Environment": [
-      {{
-        "search": "Google search 1",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 2",
-        "importance": "Rationale behind this search"
-      }},
-      {{
-        "search": "Google search 3",
-        "importance": "Rationale behind this search"
-      }},
-    ]
   }}
 }}
 

@@ -9,7 +9,13 @@ import { Progress } from "@/components/ui/progress"
 import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import React from 'react';
+import React from "react"
+import { marked } from "marked"
+
+
+// PDF dependencies
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 
 // Import your existing Firebase function
 import { saveReportEmail } from "@/app/lib/firebaseClient"
@@ -47,19 +53,19 @@ function flattenSearches(
 }
 
 export default function HomePage() {
-  const [url, setUrl] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   // Global "message" to display status
-  const [globalMessage, setGlobalMessage] = React.useState("");
+  const [globalMessage, setGlobalMessage] = useState("");
   // Whether we’re in a global waiting/loading state
-  const [globalLoading, setGlobalLoading] = React.useState(false);
+  const [globalLoading, setGlobalLoading] = useState(false);
 
   // The result from /api/generate
-  const [result, setResult] = React.useState<any>(null);
+  const [result, setResult] = useState<any>(null);
 
   // The list of queries to research
-  const [queries, setQueries] = React.useState<
+  const [queries, setQueries] = useState<
     {
       category: string;
       search: string;
@@ -72,7 +78,7 @@ export default function HomePage() {
   >([]);
 
   // Current query index for sequential research
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   // For the progress bar
   const doneCount = queries.filter((q) => q.status === "done").length;
@@ -82,10 +88,10 @@ export default function HomePage() {
     : 0;
 
   /**
-   * 1) Called when user clicks "Generate"
-   *    - Immediately shows "Learning about {url}"
-   *    - After 5s => "learning complete - thinking of what to put in report"
-   *    - Then every 10s => cycle through 5 "thinking about..." messages
+   * Called when user clicks "Generate"
+   * - "Learning about {url}"
+   * - After 5s => "learning complete"
+   * - Then cycle messages every 3s
    */
   async function handleGenerate() {
     setError(null);
@@ -97,11 +103,10 @@ export default function HomePage() {
     setGlobalLoading(true);
     setGlobalMessage(`Learning about ${url}`);
 
-    // After 5 seconds, switch to "learning complete - thinking of what to put in report"
+    // After 5 seconds, switch message
     setTimeout(() => {
       setGlobalMessage("learning complete - thinking of what to put in report");
 
-      // Then, every 10s, cycle through these messages once:
       const phases = [
         "thinking about consumer behaviour",
         "thinking about economic impacts",
@@ -116,8 +121,8 @@ export default function HomePage() {
         if (i >= phases.length) {
           clearInterval(intervalId);
         }
-      }, 3_000);
-    }, 5_000);
+      }, 3000);
+    }, 5000);
 
     // Meanwhile, call /api/generate
     try {
@@ -149,9 +154,9 @@ export default function HomePage() {
   }
 
   /**
-   * 2) As soon as we have queries, we handle them sequentially with Perplexity
+   * As soon as we have queries, handle them sequentially with Perplexity
    */
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentIndex < queries.length) {
       const q = queries[currentIndex];
       if (q.status === "pending") {
@@ -161,7 +166,7 @@ export default function HomePage() {
   }, [currentIndex, queries]);
 
   /**
-   * 3) Single Perplexity call for a query
+   * Single Perplexity call for a query
    */
   async function researchQuery(idx: number) {
     const updated = [...queries];
@@ -213,6 +218,75 @@ export default function HomePage() {
     updated[idx].expanded = !updated[idx].expanded;
     setQueries(updated);
   }
+
+  /**
+   * 4) Real "Download PDF" function using jsPDF + autoTable
+   * - Exports your queries + extractedData into a PDF
+   */
+   
+
+   function handleDownloadPdf() {
+    try {
+      const doc = new jsPDF();
+  
+      // 1) Build a single HTML string from all content
+      //    We'll parse each query's content from Markdown -> HTML using 'marked'.
+      let htmlContent = `
+        <h1>Nuggt Report</h1>
+        <p style="margin-bottom: 30px;">Generated on: ${new Date().toLocaleString()}</p>
+      `;
+  
+      // 2) Extraction Results (as-is, or styled however you like)
+      if (result?.extractedData) {
+        htmlContent += `
+          <h2>Extraction Results</h2>
+          <pre style="background: #f8f8f8; padding: 10px; white-space: pre-wrap; font-size: 12px;">
+  ${JSON.stringify(result.extractedData, null, 2)}
+          </pre>
+          <hr style="margin: 20px 0;" />
+        `;
+      }
+  
+      // 3) Render each query with a heading, markdown (converted to HTML), and citations
+      queries.forEach((q, index) => {
+        const mdToHtml = marked.parse(q.content || "No content provided.");
+  
+        htmlContent += `
+          <h3 style="margin-top: 20px;">Query ${index + 1}: ${q.search}</h3>
+          ${mdToHtml}
+        `;
+  
+        if (q.citations && q.citations.length > 0) {
+          htmlContent += "<strong>Sources:</strong><ul>";
+          q.citations.forEach((url) => {
+            htmlContent += `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></li>`;
+          });
+          htmlContent += "</ul>";
+        }
+  
+        htmlContent += `<hr style="margin: 20px 0;" />`;
+      });
+  
+      // 4) Use doc.html() to render the combined HTML into the PDF
+      //    Note that doc.html is asynchronous; we pass a callback to finalize and save.
+      doc.html(htmlContent, {
+        x: 10,
+        y: 10,
+        width: 190,         // approx page width
+        windowWidth: 1000,  // helps with layout
+        callback: function (doc) {
+          doc.save("Nuggt_Report.pdf");
+        },
+      });
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      alert("Failed to generate PDF. Check console.");
+    }
+  }
+  
+  
+  
+   
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -303,9 +377,20 @@ export default function HomePage() {
             {/* Overall progress */}
             <div className="mb-6 max-w-2xl mx-auto">
               <div className="flex justify-between items-center mb-2">
-                <div className="font-semibold">
-                  {doneCount < totalQueries ? `Query ${currentIndex + 1} of ${totalQueries}` : `All queries completed!`}
-                </div>
+                {doneCount < totalQueries ? (
+                  <div className="font-semibold">
+                    Query {currentIndex + 1} of {totalQueries}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">All queries completed!</span>
+                    {/* Download PDF button calls our new function */}
+                    <Button variant="destructive" size="sm" onClick={handleDownloadPdf}>
+                      Download PDF
+                    </Button>
+                  </div>
+                )}
+
                 <div className="text-sm text-gray-500">{Math.round(progressPercent)}% Complete</div>
               </div>
               <Progress value={progressPercent} className="h-2" />
@@ -314,9 +399,9 @@ export default function HomePage() {
             {/* Queries list */}
             <div className="space-y-4 max-w-3xl mx-auto">
               {queries.map((q, i) => {
-                let bgColor = "bg-white" // default/pending
-                if (q.status === "researching") bgColor = "bg-orange-50"
-                if (q.status === "done") bgColor = "bg-green-50"
+                let bgColor = "bg-white"; // default/pending
+                if (q.status === "researching") bgColor = "bg-orange-50";
+                if (q.status === "done") bgColor = "bg-green-50";
 
                 return (
                   <motion.div
@@ -334,12 +419,25 @@ export default function HomePage() {
                             <span>Researching on: {q.search}</span>
                           </>
                         )}
-                        {q.status === "done" && <span className="text-green-700">{q.search} — Research finished!</span>}
-                        {q.status === "pending" && <span className="italic text-gray-400">Pending — {q.search}</span>}
+                        {q.status === "done" && (
+                          <span className="text-green-700">
+                            {q.search} — Research finished!
+                          </span>
+                        )}
+                        {q.status === "pending" && (
+                          <span className="italic text-gray-400">
+                            Pending — {q.search}
+                          </span>
+                        )}
                       </div>
 
                       {q.status === "done" && (
-                        <Button variant="outline" size="sm" onClick={() => toggleExpand(i)} className="ml-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleExpand(i)}
+                          className="ml-4"
+                        >
                           {q.expanded ? "Hide" : "Show Results"}
                         </Button>
                       )}
@@ -380,7 +478,7 @@ export default function HomePage() {
                       </motion.div>
                     )}
                   </motion.div>
-                )
+                );
               })}
             </div>
           </motion.div>
@@ -388,7 +486,11 @@ export default function HomePage() {
 
         {/* Extracted Data */}
         {result?.extractedData && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-8 max-w-3xl mx-auto"
+          >
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-semibold mb-4">Extraction Results</h2>
@@ -411,7 +513,7 @@ export default function HomePage() {
 }
 
 /* 
-  This is your new shadcn dialog component. 
+  This is your existing shadcn dialog component. 
   It opens automatically when all queries have been completed. 
   On Subscribe, we call saveReportEmail() from firebaseClient.ts 
   to store "reports/<sanitizedEmail>" = {email, createdAt}
@@ -449,18 +551,13 @@ function SubscribeDialog({
     }
     try {
       await saveReportEmail(userEmail);
-      alert("Subscribed successfully!");
-      setDialogOpen(false);
+      alert("Subscribed successfully! Please remember to download the report PDF");
     } catch (err) {
       console.error(err);
       alert("Failed to subscribe. Please try again.");
     }
   }
 
-  function handleDownloadPdf() {
-    // TODO: implement real PDF generation or route
-    alert("Downloading PDF with all research...");
-  }
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -469,7 +566,8 @@ function SubscribeDialog({
           <DialogTitle>Get Weekly Personalized Reports</DialogTitle>
           <DialogDescription>
             Do you want personalized reports like these for your startup every week?
-            Enter your email below and click subscribe.
+            Enter your email below and click subscribe. 
+            PS: You can download the report PDF without subscribing as well
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4 space-y-2">
@@ -481,9 +579,6 @@ function SubscribeDialog({
           />
         </div>
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={handleDownloadPdf}>
-            Download PDF
-          </Button>
           <Button onClick={handleSubscribeEmail}>
             Subscribe
           </Button>
