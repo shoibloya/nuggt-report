@@ -84,16 +84,80 @@ export async function POST(request: NextRequest) {
 
       Come up with google searches for the target market of the given company in the following JSON format:
 
-{{
-  "searches": {{
-    "Consumer Behavior": [
       {{
-        "search": "Google search 1",
-        "importance": "Rationale behind this search"
-      }},
-    ],
-  }}
-}}
+        "searches": {{
+          "Consumer Behavior": [
+            {{
+              "search": "Google search 1",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 2",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 3",
+              "importance": "Rationale behind this search"
+            }},
+          ],
+          "Economic Conditions": [
+            {{
+              "search": "Google search 1",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 2",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 3",
+              "importance": "Rationale behind this search"
+            }},
+          ],
+          "Technological Advances": [
+            {{
+              "search": "Google search 1",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 2",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 3",
+              "importance": "Rationale behind this search"
+            }},
+          ],
+          "Competitive Landscape": [
+            {{
+              "search": "Google search 1",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 2",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 3",
+              "importance": "Rationale behind this search"
+            }},
+          ],
+          "Regulatory Environment": [
+            {{
+              "search": "Google search 1",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 2",
+              "importance": "Rationale behind this search"
+            }},
+            {{
+              "search": "Google search 3",
+              "importance": "Rationale behind this search"
+            }},
+          ]
+        }}
+      }}
 
 Ensure that the search queries within the same category do not overlap. Queries within
 the same category must be different from each other in order to properly cover all major
